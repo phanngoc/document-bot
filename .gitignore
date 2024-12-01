@@ -1,0 +1,5 @@
+.venv/
+chroma_data/
+chatbot.db
+__pycache__/
+.env
