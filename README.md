@@ -1,7 +1,19 @@
-## Crawler
+## Document Bot
 
 ### Introduction
-This document provides instructions on how to set up and run the crawler for the video-maker project.
+- Trong nhiều trường hợp, các chatbot như chatGPT bị outdate dữ liệu kiến câu lời thiếu chính xác hoặc dùng version code cũ.
+
+- Mục đích của dự án này là tạo ra một bot có khả năng thu thập thông tin từ các trang web tài liệu cụ thể kết hợp RAG để tạo BOT trả lời chính xác câu hỏi người dùng.
+
+- Dự án sử dụng Scrapy để thu thập dữ liệu và Streamlit để hiển thị dữ liệu.
+
+---
+ENGLISH:
+- In many cases, chatbots like ChatGPT have outdated data, resulting in inaccurate answers or using old code versions.
+
+- The purpose of this project is to create a bot capable of gathering information from specific documentation websites, combined with RAG, to create a BOT that accurately answers user questions.
+
+- The project uses Scrapy to collect data and Streamlit to display the data.
 
 ### Prerequisites
 - Python 3.x
