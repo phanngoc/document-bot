@@ -1,4 +1,4 @@
-from peewee import Model, SqliteDatabase, CharField, DateTimeField, ForeignKeyField, IntegerField, TextField
+from peewee import Model, SqliteDatabase, CharField, DateTimeField, ForeignKeyField, IntegerField, TextField, BooleanField
 from datetime import datetime
 from enum import Enum
 
@@ -38,5 +38,12 @@ class Page(BaseModel):
     created_at = DateTimeField(default=datetime.now)
     # updated_at = DateTimeField(default=datetime.now)
 
+class Assistant(BaseModel):
+    url = CharField(unique=True)
+    name = CharField()
+    is_builded = BooleanField(default=False)  # Add the is_builded column
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+
 # db.connect()
-# db.create_tables([User, Message, Page])
+# db.create_tables([User, Message, Page, Assistant])
