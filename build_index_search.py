@@ -6,9 +6,11 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
 
-def build_documents():
+def build_documents(assistant_id):
     documents = []
-    pages = Page.select()
+    pages = Page.select().where(Page.assistant_id == assistant_id)
+    print(f"Number of pages: {len(pages)}")
+
     for page in pages:
         doc = Document(
             id=str(page.id) if page.id else None,
@@ -18,7 +20,7 @@ def build_documents():
     return documents
 
 def build_query_engine(collection_name, assistant_id):
-    documents = build_documents()
+    documents = build_documents(assistant_id)
     # Configure persistent storage for Chroma
     settings = Settings(
         persist_directory="./chroma_data",  # Directory for storing SQLite files
