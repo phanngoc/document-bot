@@ -3,15 +3,17 @@ from scrapy.linkextractors import LinkExtractor
 from bs4 import BeautifulSoup
 import sqlite3
 import html2text
+from urllib.parse import urlparse
 
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
-    allowed_domains = ["docs.llamaindex.ai", "llamaindex.ai"]  # Replace with your target domain
-    start_urls = ["https://docs.llamaindex.ai/en/stable/understanding/workflows/branches_and_loops/"]  # Replace with the starting URL
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, start_url=None, assistant_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.connection = sqlite3.connect("../chatbot.db")
+        self.start_urls = [start_url] if start_url else []
+        self.allowed_domains = [urlparse(start_url).hostname] if start_url else []
+        self.assistant_id = assistant_id
+        self.connection = sqlite3.connect('../chatbot.db')
         self.cursor = self.connection.cursor()
 
     def parse(self, response):
@@ -32,7 +34,8 @@ class LinkSpider(scrapy.Spider):
         # Save the current page's text content
         yield {
             'url': response.url,
-            'text_content': text_content  # Markdown formatted text content of the page
+            'text_content': text_content,
+            'assistant_id': self.assistant_id  # Include the assistant_id
         }
 
         # Extract all links on the current page

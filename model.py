@@ -30,20 +30,24 @@ class Message(BaseModel):
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
 
+
+class Assistant(BaseModel):
+    url = CharField(unique=True)
+    name = CharField()
+    is_builded = BooleanField(default=False)
+    is_crawled = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+
 class Page(BaseModel):
     class Meta:
         table_name = 'pages'
     url = CharField(unique=True)
     text_content = TextField()
+    assistant = ForeignKeyField(Assistant, backref='pages')
     created_at = DateTimeField(default=datetime.now)
     # updated_at = DateTimeField(default=datetime.now)
 
-class Assistant(BaseModel):
-    url = CharField(unique=True)
-    name = CharField()
-    is_builded = BooleanField(default=False)  # Add the is_builded column
-    created_at = DateTimeField(default=datetime.now)
-    updated_at = DateTimeField(default=datetime.now)
 
 # db.connect()
 # db.create_tables([User, Message, Page, Assistant])
