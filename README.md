@@ -15,6 +15,8 @@ ENGLISH:
 
 - The project uses Scrapy to collect data and Streamlit to display the data.
 
+![alt text](<Screen Shot 2024-12-08 at 21.34.22.png>)
+
 ### Prerequisites
 - Python 3.x
 - Virtual environment
@@ -39,11 +41,6 @@ ENGLISH:
 
 ### Usage
 
-To run the crawler, use the following command:
-```sh
-cd crawler && scrapy crawl link_spider
-```
-
 - Run the Streamlit app:
 ```
 streamlit run app.py
@@ -60,3 +57,4 @@ If you would like to contribute to this project, please fork the repository and 
 ### License
 
 This project is licensed under the MIT License.
+
