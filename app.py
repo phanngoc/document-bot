@@ -21,12 +21,8 @@ Settings.embed_model = OpenAIEmbedding(
 Settings.text_splitter = SentenceSplitter(chunk_size=1024)
 
 # Initialize the database
-db.connect()
+# db.connect()
 db.create_tables([User, Message, Assistant, Page])  # Add Assistant to the table creation
-
-# Initialize the query engine
-query_engine = None
-
 
 # Initialize the RQ queue
 q = Queue(connection=Redis())
@@ -39,6 +35,7 @@ def job_done(job, connection, result, *args, **kwargs):
     assistant.is_crawled = True
     assistant.save()
     print(f"Assistant {assistant_id} is built successfully!")
+    st.session_state.query_engine = build_query_engine(assistant.name, assistant.id)
 
 def start_scrapy_job(start_url):
     # Extract the hostname from the URL
@@ -46,7 +43,7 @@ def start_scrapy_job(start_url):
     hostname = parsed_url.hostname
 
     # Check if an assistant with the same hostname already exists
-    assistant, created = Assistant.get_or_create(url=start_url, defaults={"name": hostname, "is_builded": True})
+    assistant, created = Assistant.get_or_create(url=start_url, name=hostname, defaults={"name": hostname, "is_builded": True})
     if created:
         print('Assistant created:', assistant.id)
     else:
@@ -56,6 +53,23 @@ def start_scrapy_job(start_url):
     job = q.enqueue(run_scrapy_job, start_url, assistant.id, on_success='app.job_done')
     print(f"Job {job.id} started for URL: {start_url}")
 
+def fn_change_assistant():
+    selected_assistant = st.session_state.assistant_selectbox
+    assistant = Assistant.get(Assistant.name == selected_assistant)
+    if not assistant.is_crawled:
+        st.warning(f"Assistant '{selected_assistant}' is not built. Running Scrapy job...")
+        start_scrapy_job(assistant.url)
+    else:
+        st.session_state.query_engine = build_query_engine(assistant.name, assistant.id)
+        print('query_engine:', st.session_state.query_engine)
+
+def on_assistant_change():
+    print('on_selectbox_change', st.session_state.assistant_selectbox)
+    fn_change_assistant()
+
+if selected_assistant := st.session_state.get("assistant_selectbox"):
+    fn_change_assistant()
+
 with st.sidebar:
     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password", value=os.getenv("OPENAI_API_KEY"))
     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
@@ -64,7 +78,9 @@ with st.sidebar:
     # List of Assistants
     assistants = Assistant.select()
     assistant_options = [assistant.name for assistant in assistants]
-    selected_assistant = st.selectbox("Choose an Assistant", assistant_options)
+    selected_assistant = st.selectbox("Choose an Assistant",
+        key="assistant_selectbox", options=
+        assistant_options, on_change=on_assistant_change)
 
     # Add a text input and button to submit a URL and run the Scrapy job
     start_url = st.text_input("Enter the start URL for Scrapy")
@@ -84,14 +100,14 @@ if "messages" not in st.session_state:
     ]
 
 # Check if the selected assistant is built, and if not, run run_scrapy_job
-if selected_assistant:
-    assistant = Assistant.get(Assistant.name == selected_assistant)
-    if not assistant.is_builded:
-        st.warning(f"Assistant '{selected_assistant}' is not built. Running Scrapy job...")
-        start_scrapy_job(assistant.url)
-    else:
-        query_engine = build_query_engine(assistant.name, assistant.id)
-        print('query_engine:', query_engine)
+# if selected_assistant:
+#     assistant = Assistant.get(Assistant.name == selected_assistant)
+#     if not assistant.is_crawled:
+#         st.warning(f"Assistant '{selected_assistant}' is not built. Running Scrapy job...")
+#         start_scrapy_job(assistant.url)
+#     elif not assistant.is_builded:
+#         st.session_state.query_engine = build_query_engine(assistant.name, assistant.id)
+#         print('query_engine:', st.session_state.query_engine)
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
@@ -108,8 +124,8 @@ if prompt := st.chat_input():
     Message.create(user=None, type=MessageType.USER.value, message=prompt)
 
     # Use the query engine to generate a response
-    if query_engine:
-        response = query_engine.query(prompt)
+    if st.session_state.query_engine is not None:
+        response = st.session_state.query_engine.query(prompt)
         print('response:', response)
         msg = response.response
         st.session_state.messages.append({"role": "assistant", "content": msg})
