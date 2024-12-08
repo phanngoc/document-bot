@@ -9,8 +9,8 @@
 
 BOT_NAME = "parselink"
 
-SPIDER_MODULES = ["parselink.spiders"]
-NEWSPIDER_MODULE = "parselink.spiders"
+SPIDER_MODULES = ["crawler.parselink.spiders"]
+NEWSPIDER_MODULE = "crawler.parselink.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -44,9 +44,9 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-SPIDER_MIDDLEWARES = {
-   "parselink.middlewares.LinkSpiderMiddleware": 543,
-}
+# SPIDER_MIDDLEWARES = {
+#    "parselink.middlewares.LinkSpiderMiddleware": 543,
+# }
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
@@ -64,7 +64,7 @@ SPIDER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "parselink.pipelines.SQLitePipeline": 1000,
+    "crawler.parselink.pipelines.SQLitePipeline": 1000,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -93,4 +93,4 @@ ITEM_PIPELINES = {
 # TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
-DB_PATH = "../chatbot.db"
+DB_PATH = "chatbot.db"
