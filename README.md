@@ -15,7 +15,7 @@ ENGLISH:
 
 - The project uses Scrapy to collect data and Streamlit to display the data.
 
-![alt text](<Screen Shot 2024-12-08 at 21.34.22.png>)
+![alt text](<screenshot.png>)
 
 ### Prerequisites
 - Python 3.x
