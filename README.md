@@ -46,6 +46,10 @@ ENGLISH:
 streamlit run app.py
 ```
 
+- Run job.
+```sh
+rq worker --with-scheduler
+```
 ### Configuration
 
 You can configure the crawler by modifying the `config.json` file. The file contains various settings such as the target URL, crawling depth, and output directory.

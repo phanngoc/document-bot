@@ -19,7 +19,6 @@ print('openai.api_key:', openai.api_key)
 documents = []
 pages = Page.select()
 for page in pages:
-    print('Page:', page.id)
     doc = Document(
         id=str(page.id) if page.id else None,
         text=page.text_content

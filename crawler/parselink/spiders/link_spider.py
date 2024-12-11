@@ -8,15 +8,21 @@ from urllib.parse import urlparse
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
 
-    def __init__(self, start_url=None, assistant_id=None, *args, **kwargs):
+    def __init__(self, start_url=None, assistant_id=None, max_urls=500, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.start_urls = [start_url] if start_url else []
         self.allowed_domains = [urlparse(start_url).hostname] if start_url else []
         self.assistant_id = assistant_id
+        self.max_urls = max_urls
+        self.crawled_urls = 0
         self.connection = sqlite3.connect('../chatbot.db')
         self.cursor = self.connection.cursor()
 
     def parse(self, response):
+        if self.crawled_urls >= self.max_urls:
+            return
+        self.crawled_urls += 1
+
         # Check if the URL already exists in the database
         self.cursor.execute("SELECT 1 FROM pages WHERE url = ?", (response.url,))
         if self.cursor.fetchone():
