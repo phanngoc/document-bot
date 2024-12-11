@@ -23,19 +23,21 @@ class MessageType(Enum):
     FUNCTION = 'function'
     TOOL = 'tool'
 
-class Message(BaseModel):
-    user = ForeignKeyField(User, backref='messages', null=True)
-    type = CharField(choices=[(tag, tag.value) for tag in MessageType])
-    message = CharField()
-    created_at = DateTimeField(default=datetime.now)
-    updated_at = DateTimeField(default=datetime.now)
-
 
 class Assistant(BaseModel):
+    id = IntegerField(primary_key=True)
     url = CharField(unique=True)
     name = CharField()
     is_builded = BooleanField(default=False)
     is_crawled = BooleanField(default=False)
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+
+class Message(BaseModel):
+    user = ForeignKeyField(User, backref='messages', null=True)
+    assistant = ForeignKeyField(Assistant, backref='messages', null=True)
+    type = CharField(choices=[(tag, tag.value) for tag in MessageType])
+    message = CharField()
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
 

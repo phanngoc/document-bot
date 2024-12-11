@@ -1,6 +1,4 @@
 import streamlit as st
-import sys
-import os
 from urllib.parse import urlparse
 from twisted.internet import defer
 from build_index_search import build_query_engine
@@ -16,7 +14,7 @@ def run_scrapy_job(start_url, assistant_id):
 
     @defer.inlineCallbacks
     def crawl():
-        yield runner.crawl(LinkSpider, start_url=start_url, assistant_id=assistant_id)
+        yield runner.crawl(LinkSpider, start_url=start_url, assistant_id=assistant_id, max_urls=500)
         reactor.stop()
 
     crawl()

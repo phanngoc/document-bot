@@ -5,6 +5,9 @@ from chromadb import Client
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
+from llama_index.core.memory import ChatMemoryBuffer
+
+memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
 
 def build_documents(assistant_id):
     documents = []
@@ -47,4 +50,9 @@ def build_query_engine(collection_name, assistant_id):
     else:
         index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
 
-    return index.as_query_engine()
+    return index.as_query_engine(
+        chat_mode="context",
+        memory=memory,
+        system_prompt=(
+            "You are a chatbot to help developer research and coding."
+        ))
