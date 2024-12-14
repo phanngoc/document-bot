@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse
 from build_index_search import build_query_engine
 from rq import Queue
+from rq.job import Job
 from llama_index.core import Settings
 from scrapy_job import run_scrapy_job  # Import the run_scrapy_job function
 from redis import Redis
@@ -30,7 +31,7 @@ db.create_tables([User, Message, Assistant, Page])  # Add Assistant to the table
 
 # Initialize the RQ queue
 redis_conn = Redis()
-q = Queue(connection=redis_conn)
+q = Queue(connection=redis_conn, default_timeout=600)  # Increase the default timeout to 600 seconds
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.INFO, 
@@ -119,7 +120,6 @@ if selected_assistant := st.session_state.get("assistant_selectbox"):
 with st.sidebar:
     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password", value=os.getenv("OPENAI_API_KEY"))
     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
     
     # List of Assistants
     assistants = Assistant.select()
@@ -159,6 +159,12 @@ if "messages" not in st.session_state:
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
+@st.dialog("Reference Document")
+def dialog_document(document_html):
+    print('dialog_document:', document_html[:50])
+    # st.write(document_html, unsafe_allow_html=True)
+
+
 if prompt := st.chat_input():
     if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
@@ -181,5 +187,44 @@ if prompt := st.chat_input():
         
         # Save assistant message to the database
         Message.create(user=None, type=MessageType.ASSISTANT.value, message=msg, assistant=assistant.id)
+        message = st.chat_message("document")
+        
+        topStyle = f"""
+            <div style="display: flex; flex-direction: row; border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">
+        """
+        card_html = topStyle
+        each_card_html = ""
+        bufferWrite = []
+        print('len(response.source_nodes):', len(response.source_nodes))
+        # Append and add Streamlit card for each node
+        for node_with_score in response.source_nodes:
+            document_node = node_with_score.node
+            textShort = document_node.text[:50] + "..." if len(document_node.text) > 50 else document_node.text
+    
+            bufferWrite.append(f'<p style="style="border: 1px solid #ddd; padding: 8px"">{textShort}</p>')
+            card_html += f'<p style="border: 1px solid #ddd; padding: 8px">{textShort}</p>'
+            if len(bufferWrite) % 3 == 0 and len(bufferWrite) > 0:
+                card_html += "</div>"
+                message.write(card_html, unsafe_allow_html=True)
+                card_html = topStyle
+                each_card_html = ""
+                bufferWrite = []
+
+        if  len(bufferWrite) > 0:
+            print('card_html:', card_html)
+            card_html += "</div>"
+            message.write(card_html, unsafe_allow_html=True)
+
+        # Add JavaScript to handle the click event and show the dialog
+        # st.markdown("""
+        # <script>
+        # function showDialog(text) {
+        #     const dialog = Streamlit.dialog("Reference Document");
+        #     dialog.write(text, {unsafe_allow_html: true});
+        #     dialog.show();
+        # }
+        # </script>
+        # """, unsafe_allow_html=True)
+
     else:
         st.error("Query engine is not initialized. Please run the Scrapy job first.")
