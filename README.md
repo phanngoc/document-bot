@@ -47,6 +47,7 @@ streamlit run app.py
 ```
 
 - Run job.
+On Mac run: `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES`
 ```sh
 rq worker --with-scheduler
 ```

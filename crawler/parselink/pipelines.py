@@ -7,6 +7,7 @@
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 import sqlite3
+import json
 
 class SQLitePipeline:
     def open_spider(self, spider):
@@ -16,7 +17,7 @@ class SQLitePipeline:
             CREATE TABLE IF NOT EXISTS pages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT UNIQUE,
-            text_content TEXT,
+            text_content JSON,
             assistant_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (assistant_id) REFERENCES assistants(id)
@@ -31,8 +32,9 @@ class SQLitePipeline:
         self.connection.close()
 
     def process_item(self, item, spider):
+        text_content_json = json.dumps(item['text_content'])
         self.cursor.execute('''
             INSERT OR REPLACE INTO pages (url, text_content, assistant_id, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (item['url'], item['text_content'], item['assistant_id']))
+        ''', (item['url'], text_content_json, item['assistant_id']))
         self.connection.commit()
         return item

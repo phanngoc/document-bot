@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import sqlite3
 import html2text
 from urllib.parse import urlparse
+import json
 
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
@@ -15,7 +16,7 @@ class LinkSpider(scrapy.Spider):
         self.assistant_id = assistant_id
         self.max_urls = max_urls
         self.crawled_urls = 0
-        self.connection = sqlite3.connect('../chatbot.db')
+        self.connection = sqlite3.connect(self.settings.get('DB_PATH'))
         self.cursor = self.connection.cursor()
 
     def parse(self, response):
@@ -31,16 +32,23 @@ class LinkSpider(scrapy.Spider):
 
         # Extract text content and convert to Markdown format
         soup = BeautifulSoup(response.text, 'html.parser')
-        article_content = soup.select_one('article.md-content__inner.md-typeset')
-        if article_content:
-            soup = article_content
-        text_content = html2text.html2text(str(soup))
+
+        # Read content from output_template.json
+        with open('./output_template.json', 'r') as file:
+            template_data = json.load(file)
+
+        content_insert = {}
+        # Loop through key-value pairs in the template data
+        for key, value in template_data.items():
+            if soup.select_one(value['css_selector']):
+                content_insert[key] = soup.select_one(value['css_selector']).get_text()
+        # text_content = html2text.html2text(str(soup))
        
         print('parse:url:', response.url)
         # Save the current page's text content
         yield {
             'url': response.url,
-            'text_content': text_content,
+            'text_content': content_insert,
             'assistant_id': self.assistant_id  # Include the assistant_id
         }
 

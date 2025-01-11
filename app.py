@@ -188,43 +188,6 @@ if prompt := st.chat_input():
         # Save assistant message to the database
         Message.create(user=None, type=MessageType.ASSISTANT.value, message=msg, assistant=assistant.id)
         message = st.chat_message("document")
-        
-        topStyle = f"""
-            <div style="display: flex; flex-direction: row; border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 5px;">
-        """
-        card_html = topStyle
-        each_card_html = ""
-        bufferWrite = []
-        print('len(response.source_nodes):', len(response.source_nodes))
-        # Append and add Streamlit card for each node
-        for node_with_score in response.source_nodes:
-            document_node = node_with_score.node
-            textShort = document_node.text[:50] + "..." if len(document_node.text) > 50 else document_node.text
-    
-            bufferWrite.append(f'<p style="style="border: 1px solid #ddd; padding: 8px"">{textShort}</p>')
-            card_html += f'<p style="border: 1px solid #ddd; padding: 8px">{textShort}</p>'
-            if len(bufferWrite) % 3 == 0 and len(bufferWrite) > 0:
-                card_html += "</div>"
-                message.write(card_html, unsafe_allow_html=True)
-                card_html = topStyle
-                each_card_html = ""
-                bufferWrite = []
-
-        if  len(bufferWrite) > 0:
-            print('card_html:', card_html)
-            card_html += "</div>"
-            message.write(card_html, unsafe_allow_html=True)
-
-        # Add JavaScript to handle the click event and show the dialog
-        # st.markdown("""
-        # <script>
-        # function showDialog(text) {
-        #     const dialog = Streamlit.dialog("Reference Document");
-        #     dialog.write(text, {unsafe_allow_html: true});
-        #     dialog.show();
-        # }
-        # </script>
-        # """, unsafe_allow_html=True)
 
     else:
         st.error("Query engine is not initialized. Please run the Scrapy job first.")
