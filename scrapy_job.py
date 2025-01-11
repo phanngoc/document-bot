@@ -8,6 +8,8 @@ from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
 from twisted.internet import reactor
 from scrapy.settings import Settings
+import os
+os.environ['OBJC_DISABLE_INITIALIZE_FORK_SAFETY'] = 'YES'  # Disable fork safety for macOS
 
 def run_scrapy_job(start_url, assistant_id):
     runner = CrawlerRunner(get_project_settings())
