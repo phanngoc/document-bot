@@ -35,10 +35,28 @@ def run_scrapy_job(start_url, assistant_id):
     reactor.run()
     return [start_url, assistant_id]
 
+def generate_valid_name(name):
+    # Remove protocols and replace invalid characters
+    valid_name = name.replace('https://', '').replace('http://', '').replace('/', '_').replace('.', '_')
+    # Ensure the name starts and ends with an alphanumeric character
+    valid_name = valid_name.strip('_')
+    # Ensure the name is within the required length
+    if len(valid_name) < 3:
+        valid_name = valid_name.ljust(3, 'a')
+    elif len(valid_name) > 63:
+        valid_name = valid_name[:63]
+    return valid_name
+
 def run_scrapy_process(start_url, assistant_id):
     runner = CrawlerProcess()
     runner.crawl(LinkSpider, start_url=start_url, assistant_id=assistant_id, max_urls=500)
     runner.start()
+
+    assistant = Assistant.get(Assistant.id == assistant_id)
+    # Use the helper function to generate a valid collection name
+    valid_name = generate_valid_name(assistant.name)
+    print('run_scrapy_process:build_query_engine:', valid_name)
+    build_query_engine(valid_name, assistant.id)
     return [start_url, assistant_id]
 
 def run_scrapy_subprocess(start_url, assistant_id):

@@ -51,5 +51,5 @@ class Page(BaseModel):
     # updated_at = DateTimeField(default=datetime.now)
 
 
-# db.connect()
-# db.create_tables([User, Message, Page, Assistant])
+db.connect()
+db.create_tables([User, Message, Page, Assistant])

@@ -6,7 +6,7 @@ import html2text
 from urllib.parse import urlparse
 import json
 
-from server.model import Assistant
+from model import Assistant
 
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
