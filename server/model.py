@@ -28,6 +28,7 @@ class Assistant(BaseModel):
     id = IntegerField(primary_key=True)
     url = CharField(unique=True)
     name = CharField()
+    css_selector = TextField(null=True)  # Add css_selector field
     is_builded = BooleanField(default=False)
     is_crawled = BooleanField(default=False)
     created_at = DateTimeField(default=datetime.now)

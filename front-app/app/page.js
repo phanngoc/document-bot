@@ -11,6 +11,7 @@ export default function Page() {
   const [showModal, setShowModal] = useState(false);
   const [newAssistantName, setNewAssistantName] = useState('');
   const [newAssistantUrl, setNewAssistantUrl] = useState('');
+  const [newAssistantCssSelector, setNewAssistantCssSelector] = useState('');
 
   useEffect(() => {
     async function fetchAssistants() {
@@ -43,13 +44,14 @@ export default function Page() {
     const response = await fetch('/api/assistants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newAssistantName, url: newAssistantUrl }),
+      body: JSON.stringify({ name: newAssistantName, url: newAssistantUrl, css_selector: newAssistantCssSelector }),
     });
     const newAssistant = await response.json();
     setAssistants([...assistants, newAssistant]);
     setShowModal(false);
     setNewAssistantName('');
     setNewAssistantUrl('');
+    setNewAssistantCssSelector('');
   };
 
   const handleRemoveAssistant = async (id) => {
@@ -106,6 +108,12 @@ export default function Page() {
               placeholder="URL"
               value={newAssistantUrl}
               onChange={(e) => setNewAssistantUrl(e.target.value)}
+              className="mb-3 p-2 border border-gray-300 rounded w-full"
+            />
+            <textarea
+              placeholder="CSS Selector"
+              value={newAssistantCssSelector}
+              onChange={(e) => setNewAssistantCssSelector(e.target.value)}
               className="mb-3 p-2 border border-gray-300 rounded w-full"
             />
             <div className="flex justify-end">

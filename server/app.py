@@ -33,12 +33,13 @@ def add_assistant():
         logging.info(f"Adding new assistant with data: {data}")
         assistant = Assistant.create(
             name=data['name'],
-            url=data['url']
+            url=data['url'],
+            css_selector=data.get('css_selector')  # Handle css_selector field
         )
 
         job = q.enqueue(run_scrapy_process, data['name'], assistant.id)
         logging.info(f"Job {job.id} started for URL: {assistant.url}")
-        return jsonify({"id": assistant.id, "name": assistant.name, "url": assistant.url, "job_id": job.id}), 201
+        return jsonify({"id": assistant.id, "name": assistant.name, "url": assistant.url, "css_selector": assistant.css_selector, "job_id": job.id}), 201
     except Exception as e:
         logging.error(f"Error adding assistant: {e}")
         return jsonify({"error": "Failed to add assistant"}), 500

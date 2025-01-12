@@ -16,6 +16,8 @@ class LinkSpider(scrapy.Spider):
         self.start_urls = [start_url] if start_url else []
         self.allowed_domains = [urlparse(start_url).hostname] if start_url else []
         self.assistant_id = assistant_id
+        assistant = Assistant.get(Assistant.id == assistant_id)
+        self.css_selector = assistant.css_selector
         self.max_urls = max_urls
         self.crawled_urls = 0
         self.connection = sqlite3.connect("../chatbot.db")
@@ -50,10 +52,7 @@ class LinkSpider(scrapy.Spider):
 
         # Extract text content and convert to Markdown format
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Read content from output_template.json
-        with open('./output_template.json', 'r') as file:
-            template_data = json.load(file)
+        template_data = json.load(self.css_selector)
 
         content_insert = {}
         # Loop through key-value pairs in the template data
