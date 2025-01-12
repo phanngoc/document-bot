@@ -2,7 +2,7 @@ from peewee import Model, SqliteDatabase, CharField, DateTimeField, ForeignKeyFi
 from datetime import datetime
 from enum import Enum
 
-db = SqliteDatabase('chatbot.db')
+db = SqliteDatabase('../chatbot.db')
 
 class BaseModel(Model):
     class Meta:

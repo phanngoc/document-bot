@@ -26,7 +26,7 @@ def build_query_engine(collection_name, assistant_id):
     documents = build_documents(assistant_id)
     # Configure persistent storage for Chroma
     settings = Settings(
-        persist_directory="./chroma_data",  # Directory for storing SQLite files
+        persist_directory="../chroma_data",  # Directory for storing SQLite files
         is_persistent = True
     )
     chroma_client = Client(settings=settings)
