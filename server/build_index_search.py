@@ -1,13 +1,22 @@
-from llama_index.core import Document
 from model import Assistant, Page
 from chromadb.config import Settings
 from chromadb import Client
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core import StorageContext
-from llama_index.core.memory import ChatMemoryBuffer
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from uuid import uuid4
+from langchain_core.documents import Document
 
-memory = ChatMemoryBuffer.from_defaults(token_limit=1500)
+# https://www.linkedin.com/pulse/beginners-guide-retrieval-chain-using-langchain-vijaykumar-kartha-kuinc
+# https://python.langchain.com/docs/integrations/vectorstores/chroma/
+# https://python.langchain.com/api_reference/chroma/vectorstores/langchain_chroma.vectorstores.Chroma.html#langchain_chroma.vectorstores.Chroma
+
+embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
+
+vector_store = Chroma(
+    collection_name="example_collection",
+    embedding_function=embeddings,
+    persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
+)
 
 def build_documents(assistant_id):
     documents = []
@@ -17,42 +26,22 @@ def build_documents(assistant_id):
     for page in pages:
         doc = Document(
             id=str(page.id) if page.id else None,
-            text=page.text_content
+            page_content=page.text_content,
+            metadata={"url": page.url, "assistant_id": page.assistant_id},
         )
         documents.append(doc)
+    
+    print('build_documents:documents:', len(documents))
+    uuids = [str(uuid4()) for _ in range(len(documents))]
+    vector_store.add_documents(documents=documents, ids=uuids)
     return documents
 
-def build_query_engine(collection_name, assistant_id):
-    documents = build_documents(assistant_id)
-    # Configure persistent storage for Chroma
-    settings = Settings(
-        persist_directory="../chroma_data",  # Directory for storing SQLite files
-        is_persistent = True
+def search_similarity(query):
+    results = vector_store.similarity_search(
+        query=query,
+        k=2,
     )
-    chroma_client = Client(settings=settings)
 
-    chroma_collection = chroma_client.get_or_create_collection(collection_name)
-    # Count items in the collection
-    item_count = chroma_collection.count()
-    print(f"Number of items in the collection: {item_count}")
-    # Setup vector store and storage context
-    vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+    print("Results:", results)
 
-    if item_count == 0:
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-        index = VectorStoreIndex.from_documents(
-            documents, storage_context, show_progress=True
-        )
-        assistant = Assistant.get(assistant_id)
-        assistant.is_builded = True
-        assistant.save()
-    else:
-        index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
-
-    return index.as_query_engine(
-        chat_mode="context",
-        memory=memory,
-        system_prompt=(
-            "You are a chatbot to help developer research and coding."
-        ))
+    return results

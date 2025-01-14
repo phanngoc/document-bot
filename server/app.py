@@ -7,6 +7,63 @@ from scrapy_job import run_scrapy_process
 from rq import Queue
 from rq.job import Job
 from redis import Redis
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    trim_messages,
+)
+from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate
+import uuid
+from build_index_search import search_similarity
+
+model = ChatOpenAI(model="gpt-4o")
+memory = MemorySaver()
+
+def state_modifier(state) -> list[BaseMessage]:
+    """Given the agent state, return a list of messages for the chat model."""
+    # We're using the message processor defined above.
+    return trim_messages(
+        state["messages"],
+        token_counter=len,  # <-- len will simply count the number of messages rather than tokens
+        max_tokens=5,  # <-- allow up to 5 messages.
+        strategy="last",
+        # Most chat models expect that chat history starts with either:
+        # (1) a HumanMessage or
+        # (2) a SystemMessage followed by a HumanMessage
+        # start_on="human" makes sure we produce a valid chat history
+        start_on="human",
+        # Usually, we want to keep the SystemMessage
+        # if it's present in the original history.
+        # The SystemMessage has special instructions for the model.
+        include_system=True,
+        allow_partial=False,
+    )
+
+
+@tool
+def search_chroma_db(query: str) -> str:
+    """
+    Searches the Chroma database for articles relevant to the user's query.
+    Args:
+        query (str): The search query string provided by the user.
+    Returns:
+        str: The text response containing the relevant articles.
+    """
+    """ return article relevance with user query """
+    results = search_similarity(query)
+    print("search_chroma_db:Results:", results)
+    return results
+
+tools = []
+tools.append(search_chroma_db)
+
+agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
 # Initialize the RQ queue
 redis_conn = Redis()
@@ -61,6 +118,32 @@ def delete_assistant(id):
     except Exception as e:
         logging.error(f"Error deleting assistant: {e}")
         return jsonify({"error": "Failed to delete assistant"}), 500
+
+thread_id = uuid.uuid4()
+config = {"configurable": {"thread_id": thread_id}}
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    try:
+        data = request.get_json()
+        print('api/chat:data:', data)
+        query = data.get('query')
+        if not query:
+            return jsonify({"error": "Query and assistant_id are required"}), 400
+    
+        input_message = HumanMessage(content=query)
+        responses = []
+        for event in agent_executor.stream({"messages": [input_message]}, config, stream_mode="values"):
+            event["messages"][-1].pretty_print()
+            responses.append(event["messages"][-1].content)
+        print('responses:', responses)
+        response = responses[-1]
+        print('response:', response)
+
+        return jsonify({"response": response}), 200
+    except Exception as e:
+        logging.error(f"Error processing chat request: {e}")
+        return jsonify({"error": "Failed to process chat request"}), 500
 
 if __name__ == '__main__':
     logging.info("Starting server on port 5002")

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import socket from './socket';  // Import the socket connection
 import Sidebar from './Sidebar';  // Import the Sidebar component
+import FilePicker from './FilePicker';  // Import the FilePicker component
+import ReactMarkdown from 'react-markdown';
 
 export default function Page() {
   const [messages, setMessages] = useState([]);
@@ -31,12 +33,21 @@ export default function Page() {
     };
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
       const userMessage = { text: input, role: 'user' };
       setMessages([...messages, userMessage]);
       setInput('');
-      socket.emit('message', userMessage);  // Send the message to the server
+
+      // Send the user message to the server
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: input }), // Ensure selectedAssistantId is defined
+      });
+      const data = await response.json();
+      const botMessage = { text: data.response, role: 'bot' };
+      setMessages((prevMessages) => [...prevMessages, botMessage]);
     }
   };
 
@@ -61,6 +72,11 @@ export default function Page() {
     setAssistants(assistants.filter((assistant) => assistant.id !== id));
   };
 
+  const handleFileSelect = (file) => {
+    console.log('Selected file:', file);
+    // Handle the selected file
+  };
+
   return (
     <div className="flex h-screen">
       <Sidebar assistants={assistants} setShowModal={setShowModal} removeAssistant={handleRemoveAssistant} />
@@ -72,7 +88,7 @@ export default function Page() {
               key={index}
               className={`p-3 mb-3 rounded ${msg.role === 'user' ? 'bg-green-100 text-right' : 'bg-gray-100 text-left'}`}
             >
-              {msg.text}
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
             </div>
           ))}
         </div>
