@@ -52,7 +52,12 @@ class LinkSpider(scrapy.Spider):
 
         # Extract text content and convert to Markdown format
         soup = BeautifulSoup(response.text, 'html.parser')
-        template_data = json.load(self.css_selector)
+
+        try:
+            template_data = json.loads(self.css_selector)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error decoding JSON from css_selector: {e}")
+            return
 
         content_insert = {}
         # Loop through key-value pairs in the template data

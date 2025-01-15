@@ -1,6 +1,5 @@
 from urllib.parse import urlparse
 from twisted.internet import defer
-from build_index_search import build_query_engine
 import sys
 import os
 from model import Assistant
@@ -15,6 +14,8 @@ from twisted.internet import reactor
 
 from parselink.spiders.link_spider import LinkSpider
 import subprocess
+
+from build_index_search import build_documents
 
 os.environ['OBJC_DISABLE_INITIALIZE_FORK_SAFETY'] = 'YES'  # Disable fork safety for macOS
 
@@ -56,7 +57,9 @@ def run_scrapy_process(start_url, assistant_id):
     # Use the helper function to generate a valid collection name
     valid_name = generate_valid_name(assistant.name)
     print('run_scrapy_process:build_query_engine:', valid_name)
-    build_query_engine(valid_name, assistant.id)
+    
+    build_documents(assistant.id)
+
     return [start_url, assistant_id]
 
 def run_scrapy_subprocess(start_url, assistant_id):

@@ -18,23 +18,31 @@ vector_store = Chroma(
     persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
 )
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 def build_documents(assistant_id):
-    documents = []
     pages = Page.select().where(Page.assistant_id == assistant_id)
     print(f"Number of pages: {len(pages)}")
-
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    docs = []
     for page in pages:
         doc = Document(
             id=str(page.id) if page.id else None,
             page_content=page.text_content,
             metadata={"url": page.url, "assistant_id": page.assistant_id},
         )
-        documents.append(doc)
-    
-    print('build_documents:documents:', len(documents))
-    uuids = [str(uuid4()) for _ in range(len(documents))]
-    vector_store.add_documents(documents=documents, ids=uuids)
-    return documents
+        docs.append(doc)
+
+    splits = text_splitter.split_documents(docs)
+    vector_store.add_documents(documents=splits,
+        ids=[str(uuid4()) for _ in range(len(splits))],
+    )
+
+    assistant = Assistant.get_by_id(assistant_id)
+    assistant.is_builded = True
+    assistant.save()
+
+    return True
 
 def search_similarity(query):
     results = vector_store.similarity_search(
