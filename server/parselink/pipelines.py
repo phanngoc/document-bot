@@ -11,7 +11,7 @@ import json
 
 class SQLitePipeline:
     def open_spider(self, spider):
-        self.connection = sqlite3.connect(spider.settings.get('DB_PATH'))
+        self.connection = sqlite3.connect('../chatbot.db')
         self.cursor = self.connection.cursor()
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS pages (

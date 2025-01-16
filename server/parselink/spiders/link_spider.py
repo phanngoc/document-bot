@@ -6,6 +6,8 @@ import html2text
 from urllib.parse import urlparse
 import json
 
+from model import Assistant
+
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
 
@@ -14,10 +16,28 @@ class LinkSpider(scrapy.Spider):
         self.start_urls = [start_url] if start_url else []
         self.allowed_domains = [urlparse(start_url).hostname] if start_url else []
         self.assistant_id = assistant_id
+        assistant = Assistant.get(Assistant.id == assistant_id)
+        self.css_selector = assistant.css_selector
         self.max_urls = max_urls
         self.crawled_urls = 0
-        self.connection = sqlite3.connect(self.settings.get('DB_PATH'))
+        self.connection = sqlite3.connect("../chatbot.db")
         self.cursor = self.connection.cursor()
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT UNIQUE,
+            text_content JSON,
+            assistant_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (assistant_id) REFERENCES assistants(id)
+            )
+        ''')
+        self.cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_url ON pages (url)
+        ''')
+
+        self.connection.commit()
 
     def parse(self, response):
         if self.crawled_urls >= self.max_urls:
@@ -33,9 +53,11 @@ class LinkSpider(scrapy.Spider):
         # Extract text content and convert to Markdown format
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Read content from output_template.json
-        with open('./output_template.json', 'r') as file:
-            template_data = json.load(file)
+        try:
+            template_data = json.loads(self.css_selector)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Error decoding JSON from css_selector: {e}")
+            return
 
         content_insert = {}
         # Loop through key-value pairs in the template data
@@ -46,6 +68,13 @@ class LinkSpider(scrapy.Spider):
        
         print('parse:url:', response.url)
         # Save the current page's text content
+
+        text_content_json = json.dumps(content_insert)
+        self.cursor.execute('''
+            INSERT OR REPLACE INTO pages (url, text_content, assistant_id, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (response.url, text_content_json, self.assistant_id))
+        self.connection.commit()
+
         yield {
             'url': response.url,
             'text_content': content_insert,
@@ -61,4 +90,8 @@ class LinkSpider(scrapy.Spider):
             yield response.follow(link.url, callback=self.parse)
 
     def closed(self, reason):
+        print('closed:reason:', reason)
+        assistant = Assistant.get(Assistant.id == self.assistant_id)
+        assistant.is_crawled = True
+        assistant.save()
         self.connection.close()

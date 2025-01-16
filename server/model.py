@@ -2,7 +2,7 @@ from peewee import Model, SqliteDatabase, CharField, DateTimeField, ForeignKeyFi
 from datetime import datetime
 from enum import Enum
 
-db = SqliteDatabase('chatbot.db')
+db = SqliteDatabase('../chatbot.db')
 
 class BaseModel(Model):
     class Meta:
@@ -28,6 +28,7 @@ class Assistant(BaseModel):
     id = IntegerField(primary_key=True)
     url = CharField(unique=True)
     name = CharField()
+    css_selector = TextField(null=True)  # Add css_selector field
     is_builded = BooleanField(default=False)
     is_crawled = BooleanField(default=False)
     created_at = DateTimeField(default=datetime.now)
@@ -51,5 +52,5 @@ class Page(BaseModel):
     # updated_at = DateTimeField(default=datetime.now)
 
 
-# db.connect()
-# db.create_tables([User, Message, Page, Assistant])
+db.connect()
+db.create_tables([User, Message, Page, Assistant])
