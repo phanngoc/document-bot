@@ -93,6 +93,13 @@ class SchemaAnalyzer:
 
         return response_text
 
+class DatabaseConnection(BaseModel):
+    """Database connection information."""
+    host: str = Field(description="Host of the database.")
+    user: str = Field(description="User of the database.")
+    password: str = Field(description="Password of the database.")
+    database: str = Field(description="Database name.")
+    port: int = Field(description="Port of the database.")
 
 analyzer = SchemaAnalyzer(
     host='127.0.0.1',
@@ -107,8 +114,21 @@ class Table(BaseModel):
     name: List[str] = Field(description="List of tables name in SQL database.")
 
 @tool
-def extract_list_tables_relavance(query: str):
-    """ Return the names of ALL the SQL tables that MIGHT be relevant to the user question. """
+def extract_list_tables_relavance(query: str, database_connection: Optional[DatabaseConnection] = None):
+    """ Return the names of ALL the SQL tables that MIGHT be relevant to the user question.
+        Args:
+            query (str): The user's query.
+            database_connection (DatabaseConnection): The database connection information.
+    """
+    if database_connection:
+        analyzer.reinit_connection(
+            host=database_connection.host,
+            user=database_connection.user,
+            password=database_connection.password,
+            database=database_connection.database,
+            port=database_connection.port
+        )
+
     table_name_list = analyzer.get_table_name_list()
     print("call tool:extract_list_tables_relavance", query)
     system = f"""
@@ -133,16 +153,6 @@ def extract_list_tables_relavance(query: str):
     response_text = analyzer.format_table_columns(prompt_value)
     print("prompt_value", response_text)
     return response_text
-
-
-class DatabaseConnection(BaseModel):
-    """Database connection information."""
-    host: str = Field(description="Host of the database.")
-    user: str = Field(description="User of the database.")
-    password: str = Field(description="Password of the database.")
-    database: str = Field(description="Database name.")
-    port: int = Field(description="Port of the database.")
-
 
 
 @tool

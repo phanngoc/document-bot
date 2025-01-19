@@ -30,6 +30,16 @@ memory = MemorySaver()
 
 def state_modifier(state) -> List[BaseMessage]:
     """Given the agent state, return a list of messages for the chat model."""
+    # Load messages from the database
+    # messages = Message.select().order_by(Message.created_at.asc())
+    # message_list = []
+    # for message in messages:
+    #     if message.type == MessageType.USER.value:
+    #         message_list.append(HumanMessage(content=message.message))
+    #     elif message.type == MessageType.BOT.value:
+    #         message_list.append(AIMessage(content=message.message))
+    #     # Add other message types as needed
+
     # We're using the message processor defined above.
     return trim_messages(
         state["messages"],
@@ -74,7 +84,7 @@ def write_sql_query(query: str) -> str:
 
 tools = [search_chroma_db, write_sql_query]
 
-agent_executor = create_react_agent(model, tools, checkpointer=memory)
+agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=state_modifier)
 
 # Initialize the RQ queue
 redis_conn = Redis()
@@ -129,6 +139,13 @@ def delete_assistant(id):
     except Exception as e:
         logging.error(f"Error deleting assistant: {e}")
         return jsonify({"error": "Failed to delete assistant"}), 500
+
+@app.route('/api/messages', methods=['GET'])
+def get_messages():
+    logging.info("Fetching all messages")
+    messages = Message.select()
+    message_list = [{"id": message.id, "type": message.type, "message": message.message, "created_at": message.created_at} for message in messages]
+    return jsonify(message_list)
 
 thread_id = uuid.uuid4()
 config = {"configurable": {"thread_id": thread_id}}

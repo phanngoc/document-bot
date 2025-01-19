@@ -21,7 +21,15 @@ export default function Page() {
       const data = await response.json();
       setAssistants(data);
     }
+
+    async function fetchMessages() {
+      const response = await fetch('/api/messages');
+      const data = await response.json();
+      setMessages(data);
+    }
+
     fetchAssistants();
+    fetchMessages();
 
     // Handle incoming messages from the server
     socket.on('message', (message) => {
@@ -35,7 +43,7 @@ export default function Page() {
 
   const handleSend = async () => {
     if (input.trim()) {
-      const userMessage = { text: input, role: 'user' };
+      const userMessage = { message: input, role: 'user' };
       setMessages([...messages, userMessage]);
       setInput('');
 
@@ -46,8 +54,14 @@ export default function Page() {
         body: JSON.stringify({ query: input }), // Ensure selectedAssistantId is defined
       });
       const data = await response.json();
-      const botMessage = { text: data.response, role: 'bot' };
+      const botMessage = { message: data.response, role: 'bot' };
       setMessages((prevMessages) => [...prevMessages, botMessage]);
+    }
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleSend();
     }
   };
 
@@ -86,9 +100,9 @@ export default function Page() {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`p-3 mb-3 rounded ${msg.role === 'user' ? 'bg-green-100 text-right' : 'bg-gray-100 text-left'}`}
+              className={`p-3 mb-3 rounded ${msg.type === 'user' ? 'bg-green-100 text-right' : 'bg-gray-100 text-left'}`}
             >
-              <ReactMarkdown>{msg.text}</ReactMarkdown>
+              <ReactMarkdown>{msg.message}</ReactMarkdown>
             </div>
           ))}
         </div>
@@ -97,6 +111,7 @@ export default function Page() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}  // Add the event handler for Enter key
             className="flex-1 p-2 border border-gray-300 rounded"
           />
           <button
