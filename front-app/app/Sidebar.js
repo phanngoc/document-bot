@@ -5,7 +5,13 @@ export default function Sidebar({ assistants, setShowModal, removeAssistant }) {
       <ul>
         {assistants.map((assistant) => (
           <li key={assistant.id} className="mb-3 flex justify-between items-center">
-            <a href="#" className="hover:underline">{assistant.name}</a>
+            <a
+              href="#"
+              className="hover:underline max-w-xs overflow-hidden block whitespace-nowrap text-ellipsis"
+              style={{ maxWidth: '320px' }}
+            >
+              {assistant.name}
+            </a>
             <button onClick={() => removeAssistant(assistant.id)} className="ml-2 text-red-500 hover:text-red-700">
               &#x2716; {/* Unicode for a cross mark */}
             </button>

@@ -1,4 +1,5 @@
-import logging  # Add logging import
+import logging
+from typing import List  # Add logging import
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO  # Add SocketIO import
 from flask_cors import CORS  # Add CORS import
@@ -21,11 +22,13 @@ from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 import uuid
 from build_index_search import search_similarity
+from model import Message, MessageType
+from tools import extract_list_tables_relavance
 
 model = ChatOpenAI(model="gpt-4o")
 memory = MemorySaver()
 
-def state_modifier(state) -> list[BaseMessage]:
+def state_modifier(state) -> List[BaseMessage]:
     """Given the agent state, return a list of messages for the chat model."""
     # We're using the message processor defined above.
     return trim_messages(
@@ -60,8 +63,16 @@ def search_chroma_db(query: str) -> str:
     print("search_chroma_db:Results:", results)
     return results
 
-tools = []
-tools.append(search_chroma_db)
+@tool
+def write_sql_query(query: str) -> str:
+    """
+    Search get relevant tables and columns (sql DB) from the user query
+    """
+    results = extract_list_tables_relavance(query)
+    print("write_sql_query:Results:", results)
+    return results
+
+tools = [search_chroma_db, write_sql_query]
 
 agent_executor = create_react_agent(model, tools, checkpointer=memory)
 
@@ -133,11 +144,24 @@ def chat():
     
         input_message = HumanMessage(content=query)
         responses = []
+
+        # Save user message
+        Message.create(
+            assistant=None,  # or appropriate assistant
+            type=MessageType.USER.value,
+            message=query
+        )
         for event in agent_executor.stream({"messages": [input_message]}, config, stream_mode="values"):
             event["messages"][-1].pretty_print()
             responses.append(event["messages"][-1].content)
         print('responses:', responses)
         response = responses[-1]
+        # Save bot message
+        Message.create(
+            assistant=None,  # or appropriate assistant
+            type=MessageType.BOT.value,
+            message=response
+        )
         print('response:', response)
 
         return jsonify({"response": response}), 200
