@@ -190,3 +190,61 @@ def get_transcript(video_id: str, languages: Optional[List[str]] = None):
     transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['vi'])
     print('transcript', transcript)
     return transcript
+
+import bs4
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from typing_extensions import List, TypedDict
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_openai import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+
+vector_store = InMemoryVectorStore(embeddings)
+
+
+from pydantic import BaseModel, Field
+
+
+class WebsiteUrl(BaseModel):
+    """When site to extract URL from."""
+
+    url: str = Field(description="The URL of the website to extract information from.")
+    # class_name: List[str] = Field(description="The class_names css_selector to extract information from.")
+
+
+url_extractor = llm.with_structured_output(WebsiteUrl)
+
+@tool(response_format="content_and_artifact")
+def retrieve_website_url(query: str):
+    """Retrieve information related to a query."""
+
+    websiteUrlValue = url_extractor.invoke(query)
+    print('websiteUrlValue:', websiteUrlValue)
+    # Load and chunk contents of the blog
+    # if websiteUrlValue.class_name:
+    #     wargs = dict(
+    #         parse_only=bs4.SoupStrainer(
+    #             class_=tuple(websiteUrlValue.class_name)
+    #         )
+    #     )
+    # else:
+    #     wargs = dict()
+    loader = WebBaseLoader(
+        web_paths=(websiteUrlValue.url,),
+        # bs_kwargs=wargs,
+    )
+    docs = loader.load()
+    print('docs:', docs)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    all_splits = text_splitter.split_documents(docs)
+
+    vector_store.add_documents(documents=all_splits)
+    retrieved_docs = vector_store.similarity_search(query, k=2)
+    serialized = "\n\n".join(
+        (f"Source: {doc.metadata}\n" f"Content: {doc.page_content}")
+        for doc in retrieved_docs
+    )
+    print('serialized:', serialized)
+    return serialized, retrieved_docs

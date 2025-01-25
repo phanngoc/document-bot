@@ -5,6 +5,7 @@ import socket from './socket';  // Import the socket connection
 import Sidebar from './Sidebar';  // Import the Sidebar component
 import FilePicker from './FilePicker';  // Import the FilePicker component
 import ReactMarkdown from 'react-markdown';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Page() {
   const [messages, setMessages] = useState([]);
@@ -41,17 +42,25 @@ export default function Page() {
     };
   }, []);
 
+  const router = useRouter();
+  console.log('router', router);
+  const searchParams = useSearchParams()
+ 
+  const threadId = searchParams.get('thread_id')
+  console.log('thread_id', threadId)
+
   const handleSend = async () => {
     if (input.trim()) {
       const userMessage = { message: input, type: 'user' };
       setMessages([...messages, userMessage]);
       setInput('');
-
+      
+      console.log('threadId', threadId)
       // Send the user message to the server
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: input }), // Ensure selectedAssistantId is defined
+        body: JSON.stringify({ query: input, threadId: threadId }), // Ensure selectedAssistantId is defined
       });
       const data = await response.json();
       const botMessage = { message: data.response, type: 'bot' };
