@@ -3,3 +3,4 @@ chroma_data/
 chatbot.db
 __pycache__/
 .env
+server/chroma_langchain_db
