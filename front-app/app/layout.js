@@ -1,6 +1,5 @@
 // These styles apply to every route in the application
 import './globals.css'
-import Sidebar from './Sidebar'  // Import Sidebar component
 
 export const metadata = {
   title: 'Create Next App',
@@ -11,7 +10,6 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body id="custom">
-        <Sidebar />  // Use Sidebar component
         {children}
       </body>
     </html>

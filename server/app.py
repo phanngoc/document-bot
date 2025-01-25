@@ -23,7 +23,7 @@ from langchain_core.prompts import ChatPromptTemplate
 import uuid
 from build_index_search import search_similarity
 from model import Message, MessageType, Thread  # Add Thread import
-from tools import extract_list_tables_relavance, get_transcript
+from tools import extract_list_tables_relavance, get_transcript, retrieve_website_url
 
 model = ChatOpenAI(model="gpt-4o")
 memory = MemorySaver()
@@ -71,7 +71,7 @@ def write_sql_query(query: str) -> str:
     print("write_sql_query:Results:", results)
     return results
 
-tools = [search_chroma_db, write_sql_query, get_transcript]
+tools = [search_chroma_db, write_sql_query, get_transcript, retrieve_website_url]
 
 agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=state_modifier)
 
@@ -135,8 +135,8 @@ def chat():
         data = request.get_json()
         print('api/chat:data:', data)
         query = data.get('query')
-        thread_id = data.get('thread_id')  # Get thread_id from request data
-        if not query or not thread_id:
+        threadId = data.get('threadId')  # Get thread_id from request data
+        if not query or not threadId:
             return jsonify({"error": "Query and thread_id are required"}), 400
 
         input_message = HumanMessage(content=query)
@@ -147,9 +147,9 @@ def chat():
             assistant=None,  # or appropriate assistant
             type=MessageType.USER.value,
             message=query,
-            thread=thread_id  # Associate message with thread
+            thread=threadId  # Associate message with thread
         )
-        config = {"configurable": {"thread_id": thread_id}}  # Use thread_id in config
+        config = {"configurable": {"thread_id": threadId}}  # Use thread_id in config
         for event in agent_executor.stream({"messages": [input_message]}, config, stream_mode="values"):
             event["messages"][-1].pretty_print()
             responses.append(event["messages"][-1].content)
@@ -160,7 +160,7 @@ def chat():
             assistant=None,  # or appropriate assistant
             type=MessageType.BOT.value,
             message=response,
-            thread=thread_id  # Associate message with thread
+            thread=threadId  # Associate message with thread
         )
 
         print('response:', response)
