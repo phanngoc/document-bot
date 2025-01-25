@@ -157,10 +157,36 @@ def extract_list_tables_relavance(query: str, database_connection: Optional[Data
 
 @tool
 def get_database_connection_info(query: str):
-    """Provide the necessary information for connecting to the database."""
+    """Extract the connection information for the database."""
     print("tool:get_database_connection_info", query)
     
     structured_llm = llm.with_structured_output(DatabaseConnection)
     database_connect = structured_llm.invoke(query)
+    print("tool:get_database_connection_info:connection", database_connect)
+    analyzer.reinit_connection(
+        host=database_connect.host,
+        user=database_connect.user,
+        password=database_connect.password,
+        database=database_connect.database,
+        port=database_connect.port
+    )
 
     return database_connect
+
+from youtube_transcript_api import YouTubeTranscriptApi
+
+@tool
+def get_transcript(video_id: str, languages: Optional[List[str]] = None):
+    """
+    Get the transcript of a YouTube video.
+    Args:
+        video_id (str): The ID of the YouTube video.
+        languages (Optional[List[str]], optional): A list of language codes to filter the transcript. Defaults to None.
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing the transcript data.
+    """
+    """Get the transcript of a YouTube video."""
+    
+    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['vi'])
+    print('transcript', transcript)
+    return transcript

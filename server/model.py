@@ -23,6 +23,12 @@ class MessageType(Enum):
     FUNCTION = 'function'
     TOOL = 'tool'
 
+class Thread(BaseModel):
+    id = IntegerField(primary_key=True)
+    created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
+    user = ForeignKeyField(User, backref='threads', null=True)
+    uuid = CharField(max_length=200, unique=True, null=True, index=True)
 
 class Assistant(BaseModel):
     id = IntegerField(primary_key=True)
@@ -37,6 +43,7 @@ class Assistant(BaseModel):
 class Message(BaseModel):
     user = ForeignKeyField(User, backref='messages', null=True)
     assistant = ForeignKeyField(Assistant, backref='messages', null=True)
+    thread = ForeignKeyField(Thread, backref='messages', null=True)  # Add thread field
     type = CharField(choices=[(tag, tag.value) for tag in MessageType])
     message = CharField()
     created_at = DateTimeField(default=datetime.now)
@@ -53,4 +60,4 @@ class Page(BaseModel):
 
 
 db.connect()
-db.create_tables([User, Message, Page, Assistant])
+db.create_tables([User, Message, Page, Assistant, Thread])

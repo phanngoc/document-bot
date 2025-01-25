@@ -43,7 +43,7 @@ export default function Page() {
 
   const handleSend = async () => {
     if (input.trim()) {
-      const userMessage = { message: input, role: 'user' };
+      const userMessage = { message: input, type: 'user' };
       setMessages([...messages, userMessage]);
       setInput('');
 
@@ -54,7 +54,7 @@ export default function Page() {
         body: JSON.stringify({ query: input }), // Ensure selectedAssistantId is defined
       });
       const data = await response.json();
-      const botMessage = { message: data.response, role: 'bot' };
+      const botMessage = { message: data.response, type: 'bot' };
       setMessages((prevMessages) => [...prevMessages, botMessage]);
     }
   };
@@ -95,7 +95,7 @@ export default function Page() {
     <div className="flex h-screen">
       <Sidebar assistants={assistants} setShowModal={setShowModal} removeAssistant={handleRemoveAssistant} />
       <div className="chat-container flex flex-col flex-1 w-full mx-auto p-5 border border-gray-300 rounded-lg">
-        <h1 className="text-3xl font-bold underline mb-5">Chatbot AI</h1>
+        <h1 className="text-3xl font-bold underline mb-5">Bot AI</h1>
         <div className="messages flex-1 overflow-y-auto mb-5">
           {messages.map((msg, index) => (
             <div

@@ -62,16 +62,3 @@ def run_scrapy_process(start_url, assistant_id):
 
     return [start_url, assistant_id]
 
-def run_scrapy_subprocess(start_url, assistant_id):
-    command = [
-        'scrapy', 'crawl', 'link_spider',
-        '-a', f'start_url={start_url}',
-        '-a', f'assistant_id={assistant_id}'
-    ]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    if process.returncode != 0:
-        print(f"Error: {stderr.decode('utf-8')}")
-    else:
-        print(f"Output: {stdout.decode('utf-8')}")
-    return process.returncode
