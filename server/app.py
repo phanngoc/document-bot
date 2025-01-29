@@ -23,7 +23,8 @@ from langchain_core.prompts import ChatPromptTemplate
 import uuid
 from build_index_search import search_similarity
 from model import Message, MessageType, Thread  # Add Thread import
-from tools import extract_list_tables_relavance, get_transcript, retrieve_website_url
+from tool.rss_reader_tool import retrieve_rss_link
+from tool.tools import extract_list_tables_relavance, get_transcript, retrieve_website_url
 
 model = ChatOpenAI(model="gpt-4o")
 memory = MemorySaver()
@@ -71,7 +72,8 @@ def write_sql_query(query: str) -> str:
     print("write_sql_query:Results:", results)
     return results
 
-tools = [search_chroma_db, write_sql_query, get_transcript, retrieve_website_url]
+tools = [search_chroma_db, write_sql_query, get_transcript,
+            retrieve_website_url, retrieve_rss_link]
 
 agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=state_modifier)
 

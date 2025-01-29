@@ -7,13 +7,7 @@ from scrapy.crawler import CrawlerRunner, CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from twisted.internet import reactor
 
-# PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-# BASE_DIR = os.path.dirname(PROJECT_ROOT)
-# print('BASE_DIR:', BASE_DIR)
-# sys.path.append(os.path.join(BASE_DIR, 'crawler'))  # Add project directory to system path
-
-from parselink.spiders.link_spider import LinkSpider
-import subprocess
+from spiders.link_spider import LinkSpider
 
 from build_index_search import build_documents
 
