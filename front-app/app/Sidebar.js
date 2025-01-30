@@ -8,35 +8,27 @@ export default function Sidebar({ setShowModal, removeAssistant }) {
   const [threadId, setThreadId] = useState(null);  // Add state for threadId
   const [threads, setThreads] = useState([]);  // Add state for threads
   const [assistants, setAssistants] = useState([]);  // Add state for assistants
+  const [selectedAssistants, setSelectedAssistants] = useState({}); // State để lưu trợ lý đã chọn
+  const [newAssistantName, setNewAssistantName] = useState(''); // Thêm state cho tên
+  const [newAssistantUrl, setNewAssistantUrl] = useState(''); // Thêm state cho URL
+  const [newAssistantCssSelector, setNewAssistantCssSelector] = useState(''); // Thêm state cho CSS selector
+  const [newAssistantTool, setNewAssistantTool] = useState(''); // Thêm state cho tool
   const router = useRouter();  // Initialize useRouter
 
   useEffect(() => {
-    // Fetch threads when the component mounts
-    const fetchThreads = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:5002/api/threads');
-        const data = await response.json();
-        console.log('data thread', data);
-        setThreads(data);
-      } catch (error) {
-        console.error('Error fetching threads:', error);
-      }
+    const fetchUserAssistants = async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/user/assistants', {
+        method: 'GET',
+        headers: {
+          'Authorization': token,
+        },
+      });
+      const data = await response.json();
+      setAssistants(data);
     };
 
-    // Fetch assistants when the component mounts
-    const fetchAssistants = async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:5002/api/assistants');
-        const data = await response.json();
-        console.log('data assistants', data);
-        setAssistants(data);
-      } catch (error) {
-        console.error('Error fetching assistants:', error);
-      }
-    };
-
-    fetchThreads();
-    fetchAssistants();
+    fetchUserAssistants();
   }, []);
 
   const addAssistant = () => {
@@ -70,31 +62,48 @@ export default function Sidebar({ setShowModal, removeAssistant }) {
     }
   };
 
+  const handleAssistantChange = (assistantId) => {
+    setSelectedAssistants((prev) => ({
+      ...prev,
+      [assistantId]: !prev[assistantId], // Chuyển đổi trạng thái chọn
+    }));
+  };
+
+  const handleAddAssistant = async () => {
+    const response = await fetch('/api/assistants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            name: newAssistantName, 
+            url: newAssistantUrl, 
+            css_selector: newAssistantCssSelector,
+            tool: newAssistantTool.split(',').map(tool => tool.trim()) // Chia tách và loại bỏ khoảng trắng
+        }),
+    });
+    const newAssistant = await response.json();
+    setAssistants([...assistants, newAssistant]);
+    setShowModal(false);
+    setNewAssistantName('');
+    setNewAssistantUrl('');
+    setNewAssistantCssSelector('');
+    setNewAssistantTool(''); // Reset tool
+  };
+
   return (
     <div className="sidebar w-1/4 bg-gray-800 text-white p-5">
-      <h2 className="text-2xl font-bold mb-5">Sidebar</h2>
+      <h2 className="text-2xl font-bold mb-5">Chọn Trợ Lý</h2>
       <ul>
         {assistants.map((assistant) => (
-          <li key={assistant.id} className="mb-3 flex justify-between items-center">
-            <a
-              href="#"
-              className="hover:underline max-w-xs overflow-hidden block whitespace-nowrap text-ellipsis"
-              style={{ maxWidth: '320px' }}
-            >
-              {assistant.name}
-            </a>
-            <button onClick={() => removeAssistant(assistant.id)} className="ml-2 text-red-500 hover:text-red-700">
-              &#x2716; {/* Unicode for a cross mark */}
-            </button>
+          <li key={assistant.id} className="mb-3 flex items-center">
+            <input
+              type="checkbox"
+              checked={!!selectedAssistants[assistant.id]}
+              onChange={() => handleAssistantChange(assistant.id)}
+            />
+            <span className="ml-2">{assistant.name}</span>
           </li>
         ))}
       </ul>
-      <button
-        onClick={addAssistant}  // Use addAssistant function
-        className="mt-5 p-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-      >
-        Add Assistant
-      </button>
       <h3 className="text-xl font-bold mt-5">Threads</h3>
       <ul>
         {threads.map((thread) => (
@@ -119,6 +128,13 @@ export default function Sidebar({ setShowModal, removeAssistant }) {
       >
         New Thread
       </button>
+      <input
+        type="text"
+        placeholder="Tool (phân cách bởi dấu phẩy)"
+        value={newAssistantTool}
+        onChange={(e) => setNewAssistantTool(e.target.value)}
+        className="mb-3 p-2 border border-gray-300 rounded w-full"
+      />
     </div>
   );
 }
