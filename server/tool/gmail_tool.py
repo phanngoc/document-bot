@@ -1,6 +1,5 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_openai import OpenAI
 import json
 import smtplib
 from google.oauth2 import service_account
@@ -29,7 +28,7 @@ def create_reply_chain():
     prompt = PromptTemplate(
         input_variables=["email_content"], template=prompt_template
     )
-    llm = OpenAI(model="gpt-3.5-turbo")
+
     return prompt | llm | StrOutputParser()
 
 # Hàm để lấy email mới
