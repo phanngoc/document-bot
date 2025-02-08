@@ -5,3 +5,7 @@ __pycache__/
 .env
 server/chroma_langchain_db
 research/example_data/
+data/
+elasticsearch-data/
+neo4j_db/
+example_kb_data/
