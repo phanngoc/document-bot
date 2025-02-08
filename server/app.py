@@ -3,7 +3,7 @@ from typing import List  # Add logging import
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO  # Add SocketIO import
 from flask_cors import CORS  # Add CORS import
-from model import Assistant, Page
+from model import Assistant, Page, User  # Add User import
 from scrapy_job import run_scrapy_process
 from rq import Queue
 from rq.job import Job
@@ -25,6 +25,19 @@ from build_index_search import search_similarity
 from model import Message, MessageType, Thread  # Add Thread import
 from tool.rss_reader_tool import retrieve_rss_link
 from tool.tools import extract_list_tables_relavance, get_transcript, retrieve_website_url
+import jwt
+import datetime
+import os
+from dotenv import load_dotenv
+from middleware import jwt_required  # Import middleware
+from tool.gmail_tool import gmail_tool  # Thêm import cho gmail_tool
+from tool.quickstart import quickstart_tool  # Thêm import cho quickstart_tool
+
+# Tải biến môi trường từ tệp .env
+load_dotenv()
+
+# Lấy SECRET_KEY từ biến môi trường
+SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')  # Giá trị mặc định nếu không tìm thấy
 
 model = ChatOpenAI(model="gpt-4o")
 memory = MemorySaver()
@@ -73,7 +86,7 @@ def write_sql_query(query: str) -> str:
     return results
 
 tools = [search_chroma_db, write_sql_query, get_transcript,
-            retrieve_website_url, retrieve_rss_link]
+            retrieve_website_url, retrieve_rss_link, gmail_tool, quickstart_tool]
 
 agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=state_modifier)
 
@@ -92,7 +105,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")  # Initialize SocketIO with C
 def get_assistants():
     logging.info("Fetching all assistants")
     assistants = Assistant.select()
-    assistant_list = [{"id": assistant.id, "name": assistant.name, "url": assistant.url} for assistant in assistants]
+    assistant_list = [{"id": assistant.id, "name": assistant.name, "url": assistant.url, "settings": assistant.settings} for assistant in assistants]
     return jsonify(assistant_list)
 
 @app.route('/api/assistants', methods=['POST'])
@@ -103,12 +116,13 @@ def add_assistant():
         assistant = Assistant.create(
             name=data['name'],
             url=data['url'],
-            css_selector=data.get('css_selector')  # Handle css_selector field
+            settings=data.get('settings'),
+            tool=','.join(data.get('tool', []))  # Lưu nhiều tool dưới dạng chuỗi phân cách bởi dấu phẩy
         )
 
         job = q.enqueue(run_scrapy_process, data['name'], assistant.id)
         logging.info(f"Job {job.id} started for URL: {assistant.url}")
-        return jsonify({"id": assistant.id, "name": assistant.name, "url": assistant.url, "css_selector": assistant.css_selector, "job_id": job.id}), 201
+        return jsonify({"id": assistant.id, "name": assistant.name, "url": assistant.url, "settings": assistant.settings, "tool": assistant.tool, "job_id": job.id}), 201
     except Exception as e:
         logging.error(f"Error adding assistant: {e}")
         return jsonify({"error": "Failed to add assistant"}), 500
@@ -138,8 +152,13 @@ def chat():
         print('api/chat:data:', data)
         query = data.get('query')
         threadId = data.get('threadId')  # Get thread_id from request data
+        assistant_ids = data.get('assistant_ids', [])  # Nhận assistant_ids từ yêu cầu
         if not query or not threadId:
             return jsonify({"error": "Query and thread_id are required"}), 400
+
+        # Khởi tạo lại agent với các công cụ từ assistant đã chọn
+        selected_tools = [tool for tool in tools if tool.assistant_id in assistant_ids]
+        agent_executor = create_react_agent(model, selected_tools, checkpointer=memory, state_modifier=state_modifier)
 
         input_message = HumanMessage(content=query)
         responses = []
@@ -220,6 +239,54 @@ def create_thread():
     except Exception as e:
         logging.error(f"Error creating thread: {e}")
         return jsonify({"error": "Failed to create thread"}), 500
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('username')
+    password = data.get('password')
+
+    user = User.authenticate(email, password)
+    if user:
+        token = jwt.encode({
+            'user_id': user.id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)  # Token hết hạn sau 1 giờ
+        }, SECRET_KEY, algorithm='HS256')
+
+        return jsonify({'token': token}), 200
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+@app.route('/api/check-login', methods=['GET'])
+@jwt_required  # Sử dụng middleware
+def check_login():
+    user_id = request.user_id  # Lấy user_id từ request
+    user = User.get(User.id == user_id)
+    user_info = {
+        'id': user.id,
+        'name': user.name,
+        'email': user.email
+    }
+    return jsonify({'user': user_info}), 200
+
+@app.route('/api/assistants/tools', methods=['GET'])
+def get_assistant_tools():
+    assistant_id = request.args.get('assistant_id')
+    assistant = Assistant.get(Assistant.id == assistant_id)
+    tools = assistant.tools.split(',') if assistant.tools else []
+    return jsonify(tools), 200
+
+@app.route('/api/user/assistants', methods=['GET'])
+@jwt_required  # Sử dụng middleware
+def get_user_assistants():
+    user_id = request.user_id  # Lấy user_id từ request
+    try:
+        user = User.get(User.id == user_id)
+        assistants = user.assistants  # Lấy danh sách trợ lý từ mối quan hệ
+        assistant_list = [{"id": assistant.id, "name": assistant.name} for assistant in assistants]
+        
+        return jsonify(assistant_list), 200
+    except User.DoesNotExist:
+        return jsonify({'message': 'User not found!'}), 404
 
 if __name__ == '__main__':
     logging.info("Starting server on port 5002")
