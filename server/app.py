@@ -39,7 +39,7 @@ load_dotenv()
 # Lấy SECRET_KEY từ biến môi trường
 SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')  # Giá trị mặc định nếu không tìm thấy
 
-model = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o")
 memory = MemorySaver()
 
 def state_modifier(state) -> List[BaseMessage]:
@@ -88,7 +88,7 @@ def write_sql_query(query: str) -> str:
 tools = [search_chroma_db, write_sql_query, get_transcript,
             retrieve_website_url, retrieve_rss_link, gmail_tool, quickstart_tool]
 
-agent_executor = create_react_agent(model, tools, checkpointer=memory, state_modifier=state_modifier)
+agent_executor = create_react_agent(llm, tools, checkpointer=memory, state_modifier=state_modifier)
 
 # Initialize the RQ queue
 redis_conn = Redis()
@@ -158,7 +158,7 @@ def chat():
 
         # Khởi tạo lại agent với các công cụ từ assistant đã chọn
         selected_tools = [tool for tool in tools if tool.assistant_id in assistant_ids]
-        agent_executor = create_react_agent(model, selected_tools, checkpointer=memory, state_modifier=state_modifier)
+        agent_executor = create_react_agent(llm, selected_tools, checkpointer=memory, state_modifier=state_modifier)
 
         input_message = HumanMessage(content=query)
         responses = []
